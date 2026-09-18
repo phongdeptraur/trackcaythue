@@ -125,20 +125,19 @@
     <script>
         const GITHUB_USER = "phongdeptraur";
         const GITHUB_REPO = "trackcaythue";
-        const RAW_URL = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/chat.json`;
+        // ĐỌC DỮ LIỆU TỪ NHÁNH CÔ LẬP 'storage' (KHÔNG DÍNH PENDING / KHÔNG DELAY)
+        const RAW_URL = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/storage/chat.json`;
 
         let lastMsgCount = 0;
 
         async function pullChat() {
             try {
-                // Ép browser không cache dữ liệu cũ
                 const res = await fetch(`${RAW_URL}?_t=${Date.now()}`);
                 if (!res.ok) return;
 
                 const data = await res.json();
                 const nowEpoch = Math.floor(Date.now() / 1000);
                 
-                // THUẬT TOÁN TTL: Nếu status là ONLINE nhưng quá 28 giây không có nhịp tim -> ÉP VỀ OFFLINE
                 const isHeartbeatAlive = data.epoch && (nowEpoch - data.epoch) <= 28;
                 const isActuallyOnline = data.status === "ONLINE" && isHeartbeatAlive;
 
@@ -155,7 +154,6 @@
                 
                 document.getElementById('sync-info').textContent = `Sync: ${new Date().toLocaleTimeString()}`;
 
-                // Render tin nhắn
                 const box = document.getElementById('messageList');
                 if (data.messages && data.messages.length > 0) {
                     if (data.messages.length !== lastMsgCount) {
