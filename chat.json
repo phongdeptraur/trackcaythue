@@ -1,7 +1,7 @@
 {
-  "status": "ONLINE",
-  "epoch": 1789714412,
-  "last_updated": "2026-09-18T06:53:32.701532+00:00",
+  "status": "OFFLINE",
+  "epoch": 0,
+  "last_updated": "2026-09-18T06:53:48.891624+00:00",
   "messages": [
     {
       "time": "13:49:57",
