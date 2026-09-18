@@ -50,11 +50,7 @@
             margin-bottom: 16px;
         }
 
-        .title {
-            font-size: 18px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
+        .title { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
 
         .status-pill {
             display: inline-flex;
@@ -97,25 +93,9 @@
             animation: fadeIn 0.2s ease;
         }
 
-        .msg-time {
-            font-size: 11px;
-            color: var(--muted);
-            margin-bottom: 4px;
-        }
-
-        .msg-text {
-            font-size: 14px;
-            color: #fff;
-            word-break: break-word;
-            line-height: 1.4;
-        }
-
-        .empty-hint {
-            margin: auto;
-            text-align: center;
-            color: var(--muted);
-            font-size: 13px;
-        }
+        .msg-time { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+        .msg-text { font-size: 14px; color: #fff; word-break: break-word; line-height: 1.4; }
+        .empty-hint { margin: auto; text-align: center; color: var(--muted); font-size: 13px; }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(4px); }
@@ -129,7 +109,7 @@
         <div class="header">
             <div>
                 <div class="title">TERMINAL STREAM</div>
-                <div style="font-size: 11px; color: var(--muted);" id="sync-info">Polling API...</div>
+                <div style="font-size: 11px; color: var(--muted);" id="sync-info">Connecting...</div>
             </div>
             <div class="status-pill offline" id="status-badge">
                 <span class="pulse"></span>
@@ -138,40 +118,27 @@
         </div>
 
         <div class="chat-box" id="messageList">
-            <div class="empty-hint">Chưa có tin nhắn nào được gửi từ Python...</div>
+            <div class="empty-hint">Chưa có tin nhắn nào từ Python...</div>
         </div>
     </div>
 
     <script>
         const GITHUB_USER = "phongdeptraur";
         const GITHUB_REPO = "trackcaythue";
-        const API_URL = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/chat.json`;
+        // Kéo trực tiếp từ raw.githubusercontent.com để KHÔNG BỊ GIỚI HẠN RATE LIMIT 60 lần/giờ
+        const RAW_URL = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/chat.json`;
 
-        let lastMessageCount = 0;
-
-        // UTF-8 Safe Base64 Decoder
-        function b64DecodeUnicode(str) {
-            return decodeURIComponent(atob(str).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-        }
+        let lastMsgCount = 0;
 
         async function pullChat() {
             try {
-                // Fetch trực tiếp qua REST API để 0ms cache delay
-                const res = await fetch(API_URL, {
-                    headers: { 'Accept': 'application/vnd.github.v3+json' },
-                    cache: 'no-store'
-                });
+                // Thêm timestamp microsecond để ép trình duyệt không cache
+                const res = await fetch(`${RAW_URL}?_nocache=${Date.now()}`);
+                if (!res.ok) return;
 
-                if (res.status === 404) return;
-                if (!res.ok) throw new Error("API error");
+                const data = await res.json();
 
-                const apiData = await res.json();
-                const decodedJson = b64DecodeUnicode(apiData.content);
-                const data = JSON.parse(decodedJson);
-
-                // Update Online/Offline Status
+                // Cập nhật trạng thái Online / Offline
                 const badge = document.getElementById('status-badge');
                 const badgeText = document.getElementById('status-text');
                 const isOnline = data.status === "ONLINE";
@@ -180,10 +147,10 @@
                 badgeText.textContent = isOnline ? 'ONLINE' : 'OFFLINE';
                 document.getElementById('sync-info').textContent = `Sync: ${new Date().toLocaleTimeString()}`;
 
-                // Update Messages
+                // Render danh sách tin nhắn
                 const box = document.getElementById('messageList');
                 if (data.messages && data.messages.length > 0) {
-                    if (data.messages.length !== lastMessageCount) {
+                    if (data.messages.length !== lastMsgCount) {
                         box.innerHTML = '';
                         data.messages.forEach(m => {
                             const item = document.createElement('div');
@@ -195,16 +162,16 @@
                             box.appendChild(item);
                         });
                         box.scrollTop = box.scrollHeight;
-                        lastMessageCount = data.messages.length;
+                        lastMsgCount = data.messages.length;
                     }
                 }
             } catch (err) {
-                console.error("Stream poll error:", err);
+                console.error("Poll err:", err);
             }
         }
 
         pullChat();
-        setInterval(pullChat, 1500); // Quét 1.5 giây một lần
+        setInterval(pullChat, 2000);
     </script>
 </body>
 </html>
