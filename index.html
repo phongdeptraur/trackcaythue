@@ -59,7 +59,6 @@
             border-radius: 9999px;
             font-size: 12px;
             font-weight: 700;
-            transition: all 0.3s ease;
         }
 
         .online { background: rgba(16, 185, 129, 0.15); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.3); }
@@ -125,35 +124,40 @@
     <script>
         const GITHUB_USER = "phongdeptraur";
         const GITHUB_REPO = "trackcaythue";
-        // ĐỌC DỮ LIỆU TỪ NHÁNH CÔ LẬP 'storage' (KHÔNG DÍNH PENDING / KHÔNG DELAY)
-        const RAW_URL = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/storage/chat.json`;
+        // LẤY TRỰC TIẾP QUA API CỦA NHÁNH STORAGE ĐỂ BYPASS HOÀN TOÀN FASTLY CDN CACHE
+        const API_STORAGE_URL = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/chat.json?ref=storage`;
 
         let lastMsgCount = 0;
 
+        function b64DecodeUnicode(str) {
+            return decodeURIComponent(atob(str).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        }
+
         async function pullChat() {
             try {
-                const res = await fetch(`${RAW_URL}?_t=${Date.now()}`);
+                const res = await fetch(API_STORAGE_URL, {
+                    headers: { 'Accept': 'application/vnd.github.v3+json' },
+                    cache: 'no-store'
+                });
+
                 if (!res.ok) return;
 
-                const data = await res.json();
-                const nowEpoch = Math.floor(Date.now() / 1000);
-                
-                const isHeartbeatAlive = data.epoch && (nowEpoch - data.epoch) <= 28;
-                const isActuallyOnline = data.status === "ONLINE" && isHeartbeatAlive;
+                const resData = await res.json();
+                const decodedJson = b64DecodeUnicode(resData.content);
+                const data = JSON.parse(decodedJson);
 
+                // Cập nhật trạng thái
                 const badge = document.getElementById('status-badge');
                 const badgeText = document.getElementById('status-text');
+                const isOnline = data.status === "ONLINE";
 
-                if (isActuallyOnline) {
-                    badge.className = 'status-pill online';
-                    badgeText.textContent = 'ONLINE';
-                } else {
-                    badge.className = 'status-pill offline';
-                    badgeText.textContent = 'OFFLINE';
-                }
-                
+                badge.className = `status-pill ${isOnline ? 'online' : 'offline'}`;
+                badgeText.textContent = isOnline ? 'ONLINE' : 'OFFLINE';
                 document.getElementById('sync-info').textContent = `Sync: ${new Date().toLocaleTimeString()}`;
 
+                // Cập nhật tin nhắn
                 const box = document.getElementById('messageList');
                 if (data.messages && data.messages.length > 0) {
                     if (data.messages.length !== lastMsgCount) {
@@ -177,7 +181,7 @@
         }
 
         pullChat();
-        setInterval(pullChat, 2000);
+        setInterval(pullChat, 1800);
     </script>
 </body>
 </html>
