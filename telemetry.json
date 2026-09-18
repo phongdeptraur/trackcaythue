@@ -5,10 +5,10 @@
     "machine": "AMD64"
   },
   "hardware": {
-    "ram_usage_percent": 56.0,
-    "active_window": "C:\\WINDOWS\\py.exe"
+    "ram_usage_percent": 55.0,
+    "active_window": "Screen snipping"
   },
   "status": "ONLINE",
-  "last_heartbeat": "2026-09-18T06:34:37.561685+00:00",
-  "epoch": 1789713277
+  "last_heartbeat": "2026-09-18T06:34:43.140065+00:00",
+  "epoch": 1789713283
 }
