@@ -5,10 +5,10 @@
     "machine": "AMD64"
   },
   "hardware": {
-    "ram_usage_percent": 54.0,
-    "active_window": "Maru Hub - Google Chrome"
+    "ram_usage_percent": 53.0,
+    "active_window": "Personal Access Tokens (Classic) - Google Chrome"
   },
   "status": "ONLINE",
-  "last_heartbeat": "2026-09-18T06:33:52.526070+00:00",
-  "epoch": 1789713232
+  "last_heartbeat": "2026-09-18T06:33:58.044649+00:00",
+  "epoch": 1789713238
 }
