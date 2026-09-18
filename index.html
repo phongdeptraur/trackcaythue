@@ -3,272 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Axiom // Key Authentication Gateway</title>
+    <title>Axiom // Live Node Tracker</title>
     <style>
         :root {
-            --bg: #06080f;
-            --panel: rgba(14, 18, 28, 0.85);
-            --border: rgba(255, 255, 255, 0.08);
-            --border-glow: rgba(56, 189, 248, 0.3);
+            --bg: #07090e;
+            --surface: #0e131f;
+            --border: #1e293b;
             --accent-cyan: #38bdf8;
-            --accent-emerald: #10b981;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
             --text-main: #f8fafc;
             --text-muted: #64748b;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
         body {
-            background: radial-gradient(circle at 50% 30%, #0f172a 0%, var(--bg) 80%);
+            background-color: var(--bg);
+            color: var(--text-main);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            color: var(--text-main);
-            overflow: hidden;
-            position: relative;
+            padding: 24px;
         }
 
-        /* Ambient scanline texture */
-        body::before {
-            content: " ";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
-            background-size: 100% 4px;
-            pointer-events: none;
-            opacity: 0.3;
-        }
-
-        .auth-card {
-            position: relative;
-            background: var(--panel);
+        .dashboard {
+            background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 16px;
-            padding: 40px;
-            max-width: 440px;
+            padding: 36px;
+            max-width: 520px;
             width: 100%;
-            backdrop-filter: blur(24px);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8),
-                        0 0 40px rgba(56, 189, 248, 0.04);
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .auth-card.success-border {
-            border-color: rgba(16, 185, 129, 0.4);
-            box-shadow: 0 0 50px rgba(16, 185, 129, 0.15);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
         }
 
         .header {
-            margin-bottom: 28px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            color: var(--text-muted);
-            font-size: 13px;
-        }
-
-        .input-group {
             display: flex;
-            flex-direction: column;
-            gap: 12px;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 24px;
         }
 
-        .input-wrapper {
-            position: relative;
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 700;
         }
 
-        input[type="text"] {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.5);
+        .online { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .offline { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .metric-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .metric-box {
+            background: rgba(0, 0, 0, 0.4);
             border: 1px solid var(--border);
             border-radius: 10px;
-            padding: 14px 16px;
-            font-size: 15px;
-            color: #fff;
-            outline: none;
-            font-family: inherit;
-            letter-spacing: 1px;
-            text-align: center;
-            text-transform: uppercase;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        input[type="text"]:focus {
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
-        }
-
-        button {
-            width: 100%;
-            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            padding: 14px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-
-        button:hover {
-            filter: brightness(1.15);
-            transform: translateY(-1px);
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Success Stage Display */
-        .response-container {
-            display: none;
-            margin-top: 20px;
             padding: 16px;
-            border-radius: 10px;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            text-align: center;
-            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        .response-title {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            color: var(--accent-emerald);
-            font-size: 15px;
-            font-weight: 700;
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             margin-bottom: 6px;
         }
 
-        .response-meta {
-            font-size: 12px;
-            color: var(--text-muted);
-            font-family: monospace;
+        .metric-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
             word-break: break-all;
         }
 
-        .spinner {
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
+        .progress-bar {
+            height: 6px;
+            background: #1e293b;
+            border-radius: 999px;
+            margin-top: 10px;
+            overflow: hidden;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            width: 0%;
+            transition: width 0.4s ease;
         }
     </style>
 </head>
 <body>
 
-    <div class="auth-card" id="card">
+    <div class="dashboard">
         <div class="header">
-            <h1>KÍCH HOẠT HỆ THỐNG</h1>
-            <p>Nhập mã bản quyền / license key để tiếp tục</p>
+            <div>
+                <h2 style="font-size: 20px;">NODE MONITOR</h2>
+                <span style="font-size: 12px; color: var(--text-muted);" id="last-seen">Polling GitHub...</span>
+            </div>
+            <div class="status-pill offline" id="status-badge">
+                <span class="pulse"></span>
+                <span id="status-text">OFFLINE</span>
+            </div>
         </div>
 
-        <form id="keyForm" onsubmit="handleActivation(event)">
-            <div class="input-group">
-                <div class="input-wrapper">
-                    <input 
-                        type="text" 
-                        id="keyInput" 
-                        placeholder="XXXX-XXXX-XXXX-XXXX" 
-                        autocomplete="off" 
-                        spellcheck="false" 
-                        required
-                    />
-                </div>
-                <button type="submit" id="submitBtn">
-                    <span id="btnText">XÁC MINH KEY</span>
-                    <span class="spinner" id="spinner" style="display: none;"></span>
-                </button>
+        <div class="metric-grid">
+            <div class="metric-box">
+                <div class="metric-label">Target PC Hostname</div>
+                <div class="metric-value" id="hostname">--</div>
             </div>
-        </form>
 
-        <div class="response-container" id="responseBox">
-            <div class="response-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                XÁC THỰC THÀNH CÔNG!
+            <div class="metric-box">
+                <div class="metric-label">Active Foreground App</div>
+                <div class="metric-value" style="color: var(--accent-cyan);" id="active-window">--</div>
             </div>
-            <div class="response-meta" id="tokenMeta">SESSION_ID: VALIDATED</div>
+
+            <div class="metric-box">
+                <div class="metric-label">Memory Allocation (RAM)</div>
+                <div class="metric-value" id="ram-text">-- %</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="ram-fill"></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        function generateToken(length = 24) {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let res = '';
-            for (let i = 0; i < length; i++) {
-                res += chars.charAt(Math.floor(Math.random() * chars.length));
+        // CONFIG: Thay bằng Username và Repo của bạn
+        const GITHUB_USER = "YOUR_GITHUB_USERNAME";
+        const GITHUB_REPO = "YOUR_REPO_NAME";
+        const DATA_URL = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/telemetry.json`;
+
+        async function fetchTelemetry() {
+            try {
+                // Thêm timestamp để bypass cache CDN của GitHub
+                const res = await fetch(`${DATA_URL}?_t=${Date.now()}`);
+                if (!res.ok) throw new Error("Fetch failed");
+                const data = await res.json();
+
+                const now = Math.floor(Date.now() / 1000);
+                const isOnline = (now - data.epoch) <= 20; // Nếu heartbeat < 20 giây trước -> Online
+
+                // Update UI
+                const badge = document.getElementById('status-badge');
+                const badgeText = document.getElementById('status-text');
+                badge.className = `status-pill ${isOnline ? 'online' : 'offline'}`;
+                badgeText.textContent = isOnline ? 'LIVE' : 'DISCONNECTED';
+
+                document.getElementById('hostname').textContent = `${data.system.hostname} (${data.system.os})`;
+                document.getElementById('active-window').textContent = data.hardware.active_window;
+                document.getElementById('ram-text').textContent = `${data.hardware.ram_usage_percent}%`;
+                document.getElementById('ram-fill').style.width = `${data.hardware.ram_usage_percent}%`;
+                document.getElementById('last-seen').textContent = `Sync: ${new Date(data.last_heartbeat).toLocaleTimeString()}`;
+            } catch (err) {
+                console.error("Link error:", err);
             }
-            return res;
         }
 
-        function handleActivation(e) {
-            e.preventDefault();
-            const input = document.getElementById('keyInput');
-            const btn = document.getElementById('submitBtn');
-            const btnText = document.getElementById('btnText');
-            const spinner = document.getElementById('spinner');
-            const responseBox = document.getElementById('responseBox');
-            const card = document.getElementById('card');
-            const tokenMeta = document.getElementById('tokenMeta');
-
-            // 1. Enter Verification State
-            input.disabled = true;
-            btn.disabled = true;
-            btnText.textContent = "ĐANG KIỂM TRA...";
-            spinner.style.display = "inline-block";
-            responseBox.style.display = "none";
-
-            // 2. Simulated Async Network Handshake (Instant Pass on any Key)
-            setTimeout(() => {
-                spinner.style.display = "none";
-                btnText.textContent = "ĐÃ ĐƯỢC CHẤP THUẬN";
-                btn.style.background = "#10b981";
-                card.classList.add("success-border");
-
-                // Generate pseudo-session payload
-                const mockSession = "AUTH_" + generateToken(16);
-                tokenMeta.textContent = `KEY: [ACCEPTED] // TOKEN: ${mockSession}`;
-                responseBox.style.display = "block";
-            }, 600); // 600ms realistic handshake delay
-        }
+        // Tự động load mỗi 3 giây
+        fetchTelemetry();
+        setInterval(fetchTelemetry, 3000);
     </script>
 </body>
 </html>
