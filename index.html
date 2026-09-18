@@ -11,7 +11,6 @@
             --border: #1e293b;
             --green: #10b981;
             --red: #ef4444;
-            --accent: #38bdf8;
             --text: #f8fafc;
             --muted: #64748b;
         }
@@ -60,6 +59,7 @@
             border-radius: 9999px;
             font-size: 12px;
             font-weight: 700;
+            transition: all 0.3s ease;
         }
 
         .online { background: rgba(16, 185, 129, 0.15); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.3); }
@@ -109,7 +109,7 @@
         <div class="header">
             <div>
                 <div class="title">TERMINAL STREAM</div>
-                <div style="font-size: 11px; color: var(--muted);" id="sync-info">Connecting...</div>
+                <div style="font-size: 11px; color: var(--muted);" id="sync-info">Đang kết nối...</div>
             </div>
             <div class="status-pill offline" id="status-badge">
                 <span class="pulse"></span>
@@ -125,29 +125,37 @@
     <script>
         const GITHUB_USER = "phongdeptraur";
         const GITHUB_REPO = "trackcaythue";
-        // Kéo trực tiếp từ raw.githubusercontent.com để KHÔNG BỊ GIỚI HẠN RATE LIMIT 60 lần/giờ
         const RAW_URL = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/chat.json`;
 
         let lastMsgCount = 0;
 
         async function pullChat() {
             try {
-                // Thêm timestamp microsecond để ép trình duyệt không cache
-                const res = await fetch(`${RAW_URL}?_nocache=${Date.now()}`);
+                // Ép browser không cache dữ liệu cũ
+                const res = await fetch(`${RAW_URL}?_t=${Date.now()}`);
                 if (!res.ok) return;
 
                 const data = await res.json();
+                const nowEpoch = Math.floor(Date.now() / 1000);
+                
+                // THUẬT TOÁN TTL: Nếu status là ONLINE nhưng quá 28 giây không có nhịp tim -> ÉP VỀ OFFLINE
+                const isHeartbeatAlive = data.epoch && (nowEpoch - data.epoch) <= 28;
+                const isActuallyOnline = data.status === "ONLINE" && isHeartbeatAlive;
 
-                // Cập nhật trạng thái Online / Offline
                 const badge = document.getElementById('status-badge');
                 const badgeText = document.getElementById('status-text');
-                const isOnline = data.status === "ONLINE";
 
-                badge.className = `status-pill ${isOnline ? 'online' : 'offline'}`;
-                badgeText.textContent = isOnline ? 'ONLINE' : 'OFFLINE';
+                if (isActuallyOnline) {
+                    badge.className = 'status-pill online';
+                    badgeText.textContent = 'ONLINE';
+                } else {
+                    badge.className = 'status-pill offline';
+                    badgeText.textContent = 'OFFLINE';
+                }
+                
                 document.getElementById('sync-info').textContent = `Sync: ${new Date().toLocaleTimeString()}`;
 
-                // Render danh sách tin nhắn
+                // Render tin nhắn
                 const box = document.getElementById('messageList');
                 if (data.messages && data.messages.length > 0) {
                     if (data.messages.length !== lastMsgCount) {
